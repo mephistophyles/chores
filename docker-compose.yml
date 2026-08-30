@@ -1,0 +1,30 @@
+name: chores
+
+services:
+  app:
+    image: ghcr.io/mephistophyles/chores:${TAG:-latest}
+    restart: unless-stopped
+    env_file: [.env.runtime]
+    networks: [homenet]
+    ports:
+      - "127.0.0.1:8014:8000"
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  migrate:
+    image: ghcr.io/mephistophyles/chores:${TAG:-latest}
+    command: ["python", "-m", "chores.migrate"]
+    env_file: [.env.runtime]
+    networks: [homenet]
+    profiles: [migration]
+    restart: "no"
+
+networks:
+  homenet:
+    external: true

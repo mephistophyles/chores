@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<title>Chore Map</title>
+<style>
+:root {
+    --bg-body:#f4f7fb; --bg-card:#fff; --bg-task:#fafcfd; --bg-task-hover:#f1f5f9;
+    --border-color:#e9eef3; --border-light:#e2e8f0;
+    --text-primary:#1e293b; --text-secondary:#64748b; --text-muted:#94a3b8;
+    --shadow:0 1px 3px rgba(0,0,0,.05); --accent:#1e293b; --on-accent:#f8fafc;
+    --danger:#b91c1c; --danger-bg:#fef2f2; --success:#166534; --success-bg:#f0fdf4;
+    --warning:#92400e; --warning-bg:#fffbeb; --input-bg:#fff; --chip-bg:#eef2f7;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg-body:#0f172a; --bg-card:#1e293b; --bg-task:#2d3748; --bg-task-hover:#3a4555;
+        --border-color:#334155; --border-light:#475569;
+        --text-primary:#e2e8f0; --text-secondary:#94a3b8; --text-muted:#64748b;
+        --shadow:0 1px 3px rgba(0,0,0,.3); --accent:#cbd5e1; --on-accent:#0f172a;
+        --danger:#f87171; --danger-bg:#451a1a; --success:#4ade80; --success-bg:#1a3a2a;
+        --warning:#fbbf24; --warning-bg:#3a2a1a; --input-bg:#2d3748; --chip-bg:#334155;
+    }
+}
+:root[data-theme="dark"] {
+    --bg-body:#0f172a; --bg-card:#1e293b; --bg-task:#2d3748; --bg-task-hover:#3a4555;
+    --border-color:#334155; --border-light:#475569;
+    --text-primary:#e2e8f0; --text-secondary:#94a3b8; --text-muted:#64748b;
+    --shadow:0 1px 3px rgba(0,0,0,.3); --accent:#cbd5e1; --on-accent:#0f172a;
+    --danger:#f87171; --danger-bg:#451a1a; --success:#4ade80; --success-bg:#1a3a2a;
+    --warning:#fbbf24; --warning-bg:#3a2a1a; --input-bg:#2d3748; --chip-bg:#334155;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+     background:var(--bg-body);color:var(--text-primary);padding:1.6rem 1.2rem 4rem;
+     -webkit-text-size-adjust:100%}
+.wrap{max-width:1600px;margin:0 auto}
+
+h1{font-size:1.7rem;font-weight:600;display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
+h1 small{font-size:.85rem;font-weight:400;color:var(--text-secondary)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:.55rem;margin:1rem 0 1.5rem;padding:.9rem 1rem;
+    background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;
+    box-shadow:var(--shadow);align-items:center}
+.btn{background:var(--bg-card);border:1px solid var(--border-light);padding:.42rem .95rem;
+    border-radius:30px;font-size:.85rem;font-weight:500;color:var(--text-primary);
+    cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:.4rem;
+    transition:background .15s,border-color .15s}
+.btn:hover{background:var(--bg-task-hover);border-color:var(--text-muted)}
+.btn[aria-pressed="true"],.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:var(--danger-bg)}
+.btn.small{padding:.25rem .6rem;font-size:.78rem}
+.spacer{margin-left:auto}
+.who{font-size:.82rem;color:var(--text-secondary)}
+.who b{color:var(--text-primary);font-weight:600}
+
+.columns{display:flex;flex-wrap:wrap;gap:1.2rem;align-items:flex-start}
+.column{flex:1 1 300px;min-width:260px;background:var(--bg-card);border-radius:16px;
+    border:1px solid var(--border-color);box-shadow:var(--shadow);padding:1rem 1rem .85rem;
+    display:flex;flex-direction:column}
+.column.drag-over{border-color:var(--accent);background:var(--bg-task-hover)}
+.col-head{display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;margin-bottom:.15rem}
+.col-head h2{font-size:1.05rem;font-weight:600}
+.cycle-chip{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;
+    background:var(--chip-bg);color:var(--text-secondary);padding:.15rem .5rem;border-radius:20px}
+.period{font-size:.8rem;color:var(--text-secondary);margin-bottom:.1rem}
+.rollover{font-size:.74rem;color:var(--text-muted);margin-bottom:.6rem}
+.bar{height:4px;border-radius:4px;background:var(--border-color);overflow:hidden;margin:.5rem 0 .75rem}
+.bar span{display:block;height:100%;background:var(--success);transition:width .2s}
+
+.task{display:flex;align-items:flex-start;gap:.6rem;padding:.5rem .55rem;border-radius:10px;
+    background:var(--bg-task);border:1px solid transparent;margin-bottom:.35rem}
+.task:hover{background:var(--bg-task-hover)}
+.task input[type=checkbox]{margin-top:.15rem;width:1.05rem;height:1.05rem;flex:none;
+    accent-color:var(--success);cursor:pointer}
+.task .body{flex:1;min-width:0}
+.task .text{font-size:.9rem;line-height:1.35;word-wrap:break-word}
+.task.done .text{text-decoration:line-through;color:var(--text-muted)}
+.meta{font-size:.72rem;color:var(--text-muted);margin-top:.15rem;display:flex;gap:.5rem;flex-wrap:wrap}
+.assignee{font-size:.7rem;background:var(--chip-bg);color:var(--text-secondary);
+    padding:.1rem .45rem;border-radius:20px;white-space:nowrap}
+.empty{font-size:.82rem;color:var(--text-muted);padding:.6rem .2rem}
+
+input[type=text],select{border:1px solid var(--border-light);border-radius:10px;
+    padding:.4rem .65rem;font-size:.85rem;background:var(--input-bg);color:var(--text-primary);
+    font-family:inherit;outline:none;min-width:0}
+input[type=text]:focus,select:focus{border-color:var(--accent)}
+.toolbar input[type=text]{border-radius:30px}
+
+/* ---- config + log panels ---- */
+.panel{background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;
+    box-shadow:var(--shadow);padding:1.2rem;margin-bottom:1.2rem}
+.panel h2{font-size:1.05rem;margin-bottom:.2rem}
+.panel .hint{font-size:.8rem;color:var(--text-secondary);margin-bottom:1rem}
+.cfg-cat{border:1px solid var(--border-color);border-radius:12px;padding:.9rem;margin-bottom:.9rem}
+.cfg-cat-head{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.7rem}
+.cfg-cat-head input[type=text]{flex:1 1 180px}
+.cfg-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;padding:.35rem 0;
+    border-top:1px solid var(--border-color)}
+.cfg-row input.text{flex:1 1 240px}
+.cfg-row input.who{flex:0 1 150px}
+.add-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem}
+.add-row input.text{flex:1 1 240px}
+
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{text-align:left;font-weight:600;color:var(--text-secondary);font-size:.75rem;
+    text-transform:uppercase;letter-spacing:.04em;padding:.4rem .5rem}
+td{padding:.45rem .5rem;border-top:1px solid var(--border-color);vertical-align:top}
+td.act-uncheck{color:var(--text-muted)}
+.log-scroll{overflow-x:auto}
+
+.toast{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);
+    background:var(--accent);color:var(--on-accent);padding:.55rem 1rem;border-radius:30px;
+    font-size:.85rem;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s;
+    max-width:calc(100vw - 2rem)}
+.toast.show{opacity:1}
+.foot{margin-top:1.5rem;font-size:.78rem;color:var(--text-muted);text-align:center}
+[hidden]{display:none !important}
+@media (max-width:420px){body{padding:1rem .7rem 3rem}h1{font-size:1.35rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧹 Chore Map <small id="todayLabel"></small></h1>
+
+  <div class="toolbar">
+    <button class="btn" id="tabBoard" aria-pressed="true">Board</button>
+    <button class="btn" id="tabConfig" aria-pressed="false">⚙️ Chore list</button>
+    <button class="btn" id="tabLog" aria-pressed="false">📜 Log</button>
+    <label class="who" for="filterAssignee">Show</label>
+    <select id="filterAssignee"><option value="">everyone</option></select>
+    <span class="spacer"></span>
+    <span class="who">signed in as <b id="meLabel">…</b></span>
+    <button class="btn" id="themeBtn" title="Toggle theme">🌓</button>
+  </div>
+
+  <div id="viewBoard"><div id="columns" class="columns"></div></div>
+
+  <div id="viewConfig" hidden>
+    <div class="panel">
+      <h2>Chore list</h2>
+      <p class="hint">Edits apply to everyone, straight away. Removing a chore hides it from
+        the board but keeps it in the log. Assigning someone is optional — an unassigned
+        chore is anyone's.</p>
+      <div id="cfgCats"></div>
+      <div class="add-row">
+        <input type="text" class="text" id="newCatName" placeholder="New category name…" />
+        <select id="newCatCycle"></select>
+        <button class="btn primary" id="newCatBtn">+ Add category</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewLog" hidden>
+    <div class="panel">
+      <h2>Completion log</h2>
+      <p class="hint">Every tick and untick, newest first.</p>
+      <div class="log-scroll">
+        <table>
+          <thead><tr><th>When</th><th>Who</th><th>Chore</th><th>Period</th><th></th></tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
+      </div>
+      <div class="add-row"><button class="btn" id="logMoreBtn" hidden>Load more</button></div>
+    </div>
+  </div>
+
+  <p class="foot">Cycles roll over on their own — a new day, week, or month starts the board fresh.</p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var board = null, config = null, mayWrite = false;
+  var logRows = [], logNext = null;
+  var filterAssignee = '';
+  var el = function (id) { return document.getElementById(id); };
+  var PERIOD_NOUN = { daily: 'day', weekly: 'week', monthly: 'month' };
+
+  // ---------- helpers ----------
+  function toast(msg) {
+    var t = el('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.classList.remove('show'); }, 2600);
+  }
+
+  function api(path, opts) {
+    opts = opts || {};
+    return fetch(path, {
+      method: opts.method || 'GET',
+      headers: opts.body ? { 'Content-Type': 'application/json' } : undefined,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+      credentials: 'same-origin'
+    }).then(function (res) {
+      if (!res.ok) {
+        return res.json().catch(function () { return {}; }).then(function (j) {
+          throw new Error(j.detail || (res.status + ' ' + res.statusText));
+        });
+      }
+      return res.status === 204 ? null : res.json();
+    });
+  }
+
+  function elt(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  function relTime(iso) {
+    var then = new Date(iso), secs = (Date.now() - then.getTime()) / 1000;
+    if (secs < 60) return 'just now';
+    if (secs < 3600) return Math.floor(secs / 60) + 'm ago';
+    if (secs < 86400) return Math.floor(secs / 3600) + 'h ago';
+    if (secs < 604800) return Math.floor(secs / 86400) + 'd ago';
+    return then.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  }
+
+  function stamp(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' +
+           d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ---------- theme ----------
+  function initTheme() {
+    var saved = null;
+    try { saved = localStorage.getItem('choreTheme'); } catch (e) { /* private mode */ }
+    if (saved === 'dark' || saved === 'light') document.documentElement.dataset.theme = saved;
+    el('themeBtn').addEventListener('click', function () {
+      var current = document.documentElement.dataset.theme;
+      if (!current) {
+        current = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      var next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem('choreTheme', next); } catch (e) { /* ignore */ }
+    });
+  }
+
+  // ---------- board ----------
+  function renderBoard() {
+    var host = el('columns');
+    host.textContent = '';
+    if (!board || !board.categories.length) {
+      host.appendChild(elt('p', 'empty', 'No categories yet — add some under "Chore list".'));
+      return;
+    }
+
+    board.categories.forEach(function (cat) {
+      var col = elt('div', 'column');
+      col.dataset.categoryId = cat.id;
+
+      var head = elt('div', 'col-head');
+      head.appendChild(elt('h2', null, cat.name));
+      head.appendChild(elt('span', 'cycle-chip', cat.cycle));
+      col.appendChild(head);
+
+      var label = cat.period_label + (cat.descriptor ? ' · ' + cat.descriptor : '');
+      col.appendChild(elt('div', 'period', label));
+
+      if (cat.previous_period_key) {
+        col.appendChild(elt('div', 'rollover',
+          'Previous ' + PERIOD_NOUN[cat.cycle] + ': ' + cat.previous_done + ' done'));
+      }
+
+      var bar = elt('div', 'bar');
+      var fill = elt('span');
+      fill.style.width = (cat.total ? Math.round(100 * cat.done / cat.total) : 0) + '%';
+      bar.appendChild(fill);
+      col.appendChild(bar);
+
+      var visible = cat.chores.filter(function (c) {
+        return !filterAssignee || c.assignee === filterAssignee;
+      });
+
+      if (!visible.length) {
+        col.appendChild(elt('div', 'empty',
+          filterAssignee ? 'nothing assigned here' : '✨ no chores yet'));
+      }
+
+      visible.forEach(function (chore) {
+        var row = elt('div', 'task' + (chore.checked ? ' done' : ''));
+
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = chore.checked;
+        cb.disabled = !mayWrite;
+        cb.setAttribute('aria-label', chore.text);
+        cb.addEventListener('change', function () {
+          cb.disabled = true;
+          api('/api/chores/' + chore.id + '/check', {
+            method: 'POST', body: { checked: cb.checked }
+          }).then(function (next) {
+            board = Object.assign(board, next);
+            renderBoard();
+          }).catch(function (err) {
+            cb.checked = !cb.checked;
+            cb.disabled = false;
+            toast(err.message);
+          });
+        });
+
+        var body = elt('div', 'body');
+        var line = elt('div', 'text', chore.text);
+        body.appendChild(line);
+
+        var meta = elt('div', 'meta');
+        if (chore.assignee) meta.appendChild(elt('span', 'assignee', chore.assignee));
+        if (chore.checked && chore.checked_by) {
+          meta.appendChild(elt('span', null,
+            '✓ ' + chore.checked_by + ' · ' + relTime(chore.checked_at)));
+        }
+        if (meta.childNodes.length) body.appendChild(meta);
+
+        row.appendChild(cb);
+        row.appendChild(body);
+        col.appendChild(row);
+      });
+
+      host.appendChild(col);
+    });
+  }
+
+  function loadBoard() {
+    return api('/api/board').then(function (data) {
+      board = data;
+      mayWrite = data.may_write;
+      el('meLabel').textContent = data.me;
+      el('todayLabel').textContent = '· ' + new Date(data.date + 'T00:00:00')
+        .toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+      renderAssigneeFilter(data.assignees || []);
+      renderBoard();
+    });
+  }
+
+  function renderAssigneeFilter(names) {
+    var sel = el('filterAssignee'), had = filterAssignee;
+    sel.textContent = '';
+    sel.appendChild(new Option('everyone', ''));
+    names.forEach(function (n) { sel.appendChild(new Option(n, n)); });
+    sel.value = names.indexOf(had) >= 0 ? had : '';
+    filterAssignee = sel.value;
+  }
+
+  // ---------- config ----------
+  function renderConfig() {
+    var host = el('cfgCats');
+    host.textContent = '';
+    if (!config) return;
+
+    var cycleOptions = config.cycles;
+    var catSelectOptions = config.categories;
+
+    config.categories.forEach(function (cat) {
+      var box = elt('div', 'cfg-cat');
+
+      var head = elt('div', 'cfg-cat-head');
+      var nameIn = document.createElement('input');
+      nameIn.type = 'text'; nameIn.value = cat.name; nameIn.disabled = !mayWrite;
+      nameIn.addEventListener('change', function () {
+        patchCategory(cat.id, { name: nameIn.value.trim() || cat.name });
+      });
+
+      var cycleSel = document.createElement('select');
+      cycleSel.disabled = !mayWrite;
+      cycleOptions.forEach(function (c) { cycleSel.appendChild(new Option(c, c)); });
+      cycleSel.value = cat.cycle;
+      cycleSel.addEventListener('change', function () {
+        patchCategory(cat.id, { cycle: cycleSel.value });
+      });
+
+      var descIn = document.createElement('input');
+      descIn.type = 'text'; descIn.value = cat.descriptor || '';
+      descIn.placeholder = 'note (optional)'; descIn.disabled = !mayWrite;
+      descIn.addEventListener('change', function () {
+        patchCategory(cat.id, { descriptor: descIn.value });
+      });
+
+      var delBtn = elt('button', 'btn small danger', 'Remove');
+      delBtn.disabled = !mayWrite;
+      delBtn.addEventListener('click', function () {
+        if (!confirm('Remove "' + cat.name + '" and its chores from the board?')) return;
+        api('/api/config/categories/' + cat.id, { method: 'DELETE' })
+          .then(refreshAll).then(function () { toast('Category removed'); })
+          .catch(function (e) { toast(e.message); });
+      });
+
+      head.appendChild(nameIn);
+      head.appendChild(cycleSel);
+      head.appendChild(descIn);
+      head.appendChild(delBtn);
+      box.appendChild(head);
+
+      cat.chores.forEach(function (chore) {
+        var row = elt('div', 'cfg-row');
+
+        var textIn = document.createElement('input');
+        textIn.type = 'text'; textIn.className = 'text'; textIn.value = chore.text;
+        textIn.disabled = !mayWrite;
+        textIn.addEventListener('change', function () {
+          patchChore(chore.id, { text: textIn.value.trim() || chore.text });
+        });
+
+        var whoIn = document.createElement('input');
+        whoIn.type = 'text'; whoIn.className = 'who'; whoIn.value = chore.assignee || '';
+        whoIn.placeholder = 'anyone'; whoIn.disabled = !mayWrite;
+        whoIn.addEventListener('change', function () {
+          var v = whoIn.value.trim();
+          patchChore(chore.id, v ? { assignee: v } : { unassign: true });
+        });
+
+        var moveSel = document.createElement('select');
+        moveSel.disabled = !mayWrite;
+        catSelectOptions.forEach(function (c) { moveSel.appendChild(new Option(c.name, c.id)); });
+        moveSel.value = String(cat.id);
+        moveSel.addEventListener('change', function () {
+          patchChore(chore.id, { category_id: Number(moveSel.value) });
+        });
+
+        var del = elt('button', 'btn small danger', '✕');
+        del.title = 'Remove chore';
+        del.disabled = !mayWrite;
+        del.addEventListener('click', function () {
+          api('/api/config/chores/' + chore.id, { method: 'DELETE' })
+            .then(refreshAll).then(function () { toast('Chore removed'); })
+            .catch(function (e) { toast(e.message); });
+        });
+
+        row.appendChild(textIn);
+        row.appendChild(whoIn);
+        row.appendChild(moveSel);
+        row.appendChild(del);
+        box.appendChild(row);
+      });
+
+      var add = elt('div', 'add-row');
+      var addText = document.createElement('input');
+      addText.type = 'text'; addText.className = 'text'; addText.placeholder = 'Add a chore…';
+      addText.disabled = !mayWrite;
+      var addWho = document.createElement('input');
+      addWho.type = 'text'; addWho.placeholder = 'assign to (optional)';
+      addWho.disabled = !mayWrite;
+      var addBtn = elt('button', 'btn primary', '+ Add');
+      addBtn.disabled = !mayWrite;
+      function submitChore() {
+        var text = addText.value.trim();
+        if (!text) return;
+        api('/api/config/chores', {
+          method: 'POST',
+          body: { category_id: cat.id, text: text, assignee: addWho.value.trim() || null }
+        }).then(function () {
+          addText.value = ''; addWho.value = '';
+          return refreshAll();
+        }).catch(function (e) { toast(e.message); });
+      }
+      addBtn.addEventListener('click', submitChore);
+      addText.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitChore(); });
+
+      add.appendChild(addText);
+      add.appendChild(addWho);
+      add.appendChild(addBtn);
+      box.appendChild(add);
+
+      host.appendChild(box);
+    });
+
+    var newCycle = el('newCatCycle');
+    if (!newCycle.options.length) {
+      cycleOptions.forEach(function (c) { newCycle.appendChild(new Option(c, c)); });
+      newCycle.value = 'weekly';
+    }
+    el('newCatName').disabled = !mayWrite;
+    newCycle.disabled = !mayWrite;
+    el('newCatBtn').disabled = !mayWrite;
+  }
+
+  function patchCategory(id, body) {
+    api('/api/config/categories/' + id, { method: 'PATCH', body: body })
+      .then(refreshAll).catch(function (e) { toast(e.message); });
+  }
+
+  function patchChore(id, body) {
+    api('/api/config/chores/' + id, { method: 'PATCH', body: body })
+      .then(refreshAll).catch(function (e) { toast(e.message); });
+  }
+
+  function loadConfig() {
+    return api('/api/config').then(function (data) { config = data; renderConfig(); });
+  }
+
+  // ---------- log ----------
+  function renderLog() {
+    var body = el('logBody');
+    body.textContent = '';
+    if (!logRows.length) {
+      var tr = elt('tr');
+      var td = elt('td', null, 'Nothing logged yet.');
+      td.colSpan = 5;
+      tr.appendChild(td);
+      body.appendChild(tr);
+    }
+    logRows.forEach(function (ev) {
+      var tr = elt('tr');
+      tr.appendChild(elt('td', null, stamp(ev.occurred_at)));
+      tr.appendChild(elt('td', null, ev.user_id));
+      tr.appendChild(elt('td', null, ev.chore_text));
+      tr.appendChild(elt('td', null, ev.category_name + ' · ' + ev.period_key));
+      tr.appendChild(elt('td', ev.action === 'check' ? '' : 'act-uncheck',
+        ev.action === 'check' ? '✓ done' : 'undone'));
+      body.appendChild(tr);
+    });
+    el('logMoreBtn').hidden = !logNext;
+  }
+
+  function loadLog(more) {
+    var url = '/api/history?limit=50' + (more && logNext ? '&before_id=' + logNext : '');
+    return api(url).then(function (data) {
+      logRows = more ? logRows.concat(data.events) : data.events;
+      logNext = data.next_before_id;
+      renderLog();
+    });
+  }
+
+  // ---------- views ----------
+  function show(view) {
+    ['Board', 'Config', 'Log'].forEach(function (v) {
+      el('view' + v).hidden = v !== view;
+      el('tab' + v).setAttribute('aria-pressed', String(v === view));
+    });
+    if (view === 'Config') loadConfig().catch(function (e) { toast(e.message); });
+    if (view === 'Log') loadLog(false).catch(function (e) { toast(e.message); });
+  }
+
+  function refreshAll() {
+    return Promise.all([loadBoard(), loadConfig()]);
+  }
+
+  // ---------- boot ----------
+  initTheme();
+  el('tabBoard').addEventListener('click', function () { show('Board'); loadBoard(); });
+  el('tabConfig').addEventListener('click', function () { show('Config'); });
+  el('tabLog').addEventListener('click', function () { show('Log'); });
+  el('logMoreBtn').addEventListener('click', function () { loadLog(true); });
+  el('filterAssignee').addEventListener('change', function (e) {
+    filterAssignee = e.target.value;
+    renderBoard();
+  });
+  el('newCatBtn').addEventListener('click', function () {
+    var name = el('newCatName').value.trim();
+    if (!name) return;
+    api('/api/config/categories', {
+      method: 'POST', body: { name: name, cycle: el('newCatCycle').value }
+    }).then(function () {
+      el('newCatName').value = '';
+      return refreshAll();
+    }).catch(function (e) { toast(e.message); });
+  });
+
+  loadBoard().catch(function (e) {
+    el('columns').appendChild(elt('p', 'empty', 'Could not load the board: ' + e.message));
+  });
+
+  // The date can change while the tab sits open overnight; re-check on focus so the
+  // board rolls over without a manual reload.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible' || !board) return;
+    loadBoard().catch(function () { /* transient; the next focus retries */ });
+  });
+  setInterval(function () {
+    if (document.visibilityState === 'visible' && board) {
+      loadBoard().catch(function () {});
+    }
+  }, 300000);
+})();
+</script>
+</body>
+</html>

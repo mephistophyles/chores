@@ -1,0 +1,9 @@
+{
+  "slug": "chores",
+  "name": "Chores",
+  "kind": "app",
+  "description": "Household chore map with rolling daily/weekly/monthly cycles and a per-person completion log",
+  "group": "household",
+  "access": ["me", "household"],
+  "status": "active"
+}

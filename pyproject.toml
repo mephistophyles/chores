@@ -1,0 +1,17 @@
+[project]
+name = "chores"
+version = "0.1.0"
+description = "Household chore map with rolling cycles and a per-person completion log"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.121.2",
+  "uvicorn[standard]==0.38.0",
+  "psycopg[binary,pool]==3.2.10",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
